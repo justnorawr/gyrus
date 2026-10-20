@@ -2,11 +2,10 @@ package lifecycle
 
 import (
 	"fmt"
-	"math"
 	"sort"
 	"strings"
-	"unicode"
 
+	"github.com/armckinney/gyrus/internal/textrank"
 	"github.com/armckinney/gyrus/pkg/gyrus"
 )
 
@@ -79,22 +78,6 @@ func splitSections(content string) []section {
 	return out
 }
 
-// promptTerms lowercases the prompt and splits it into distinct words of two or more characters.
-func promptTerms(prompt string) []string {
-	parts := strings.FieldsFunc(strings.ToLower(prompt), func(r rune) bool {
-		return !unicode.IsLetter(r) && !unicode.IsDigit(r) && r != '_' && r != '-'
-	})
-	seen := make(map[string]bool)
-	var terms []string
-	for _, p := range parts {
-		if len(p) >= 2 && !seen[p] {
-			seen[p] = true
-			terms = append(terms, p)
-		}
-	}
-	return terms
-}
-
 // truncateAtParagraphs keeps whole leading paragraphs of text that fit within maxTokens, marked as truncated.
 func truncateAtParagraphs(text string, maxTokens int) (string, bool) {
 	kept := ""
@@ -122,8 +105,8 @@ type candidate struct {
 
 // renderBudgeted builds the context layer from the concepts' sections that best match the prompt, within maxTokens.
 //
-// Sections are scored by the prompt terms they contain, each weighted by how rare it is across all candidate
-// sections (a term in the heading counts twice). Every concept first gets its best section (its first section when
+// Sections are scored by BM25 against the prompt, over all candidate sections (a heading's words count twice).
+// Every concept first gets its best section (its first section when
 // none matches) in priority order, project concepts first; the remaining matching sections then fill what is left of
 // the budget, best first. A concept's sections keep their document order, and a concept whose best section does not
 // fit gets its leading paragraphs instead. Nothing is cut inside a paragraph.
@@ -131,36 +114,23 @@ func renderBudgeted(prompt, projectBanner, refBanner string, project, ref []gyru
 	docs := append(append([]gyrus.Concept{}, project...), ref...)
 	isProject := func(i int) bool { return i < len(project) }
 
-	terms := promptTerms(prompt)
+	terms := textrank.Unique(textrank.Tokenize(prompt))
 	sections := make([][]section, len(docs))
-	df := make(map[string]int)
-	total := 0
+	var tokens [][]string
 	for i, doc := range docs {
 		sections[i] = splitSections(doc.Content)
-		total += len(sections[i])
 		for _, s := range sections[i] {
-			lower := strings.ToLower(s.text)
-			for _, t := range terms {
-				if strings.Contains(lower, t) {
-					df[t]++
-				}
-			}
+			tokens = append(tokens, append(textrank.Tokenize(s.heading), textrank.Tokenize(s.text)...))
 		}
 	}
-	score := func(s section) float64 {
-		lower, heading := strings.ToLower(s.text), strings.ToLower(s.heading)
-		value := 0.0
-		for _, t := range terms {
-			if df[t] == 0 || !strings.Contains(lower, t) {
-				continue
-			}
-			w := math.Log(1 + float64(total)/float64(df[t]))
-			value += w
-			if strings.Contains(heading, t) {
-				value += w
-			}
+	corpus := textrank.NewCorpus(tokens)
+	scores := make([][]float64, len(docs))
+	for i, k := 0, 0; i < len(docs); i++ {
+		scores[i] = make([]float64, len(sections[i]))
+		for j := range sections[i] {
+			scores[i][j] = corpus.Score(k, terms)
+			k++
 		}
-		return value
 	}
 
 	budget := maxTokens - EstimateTokens(contextLayerHeader)
@@ -198,8 +168,8 @@ func renderBudgeted(prompt, projectBanner, refBanner string, project, ref []gyru
 			continue
 		}
 		best := candidate{doc: i, sec: sections[i][0], score: -1}
-		for _, s := range sections[i] {
-			sc := score(s)
+		for j, s := range sections[i] {
+			sc := scores[i][j]
 			if sc > 0 {
 				rest = append(rest, candidate{doc: i, sec: s, score: sc})
 			}
