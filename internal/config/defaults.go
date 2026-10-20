@@ -29,7 +29,7 @@ const (
 // ValidStorageProviders lists all recognized storage provider names.
 var ValidStorageProviders = []string{
 	"localfs", "git", "s3", "aws_s3", "azure", "azure_blob",
-	"gcs", "gcp_gcs", "gcp", "blob", "postgres",
+	"gcs", "gcp_gcs", "gcp", "blob", "postgres", "wiki",
 }
 
 // ValidSearchProviders lists all recognized search provider names.
