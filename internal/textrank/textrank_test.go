@@ -52,3 +52,29 @@ func TestCorpusScore(t *testing.T) {
 		t.Errorf("a term in most documents must weigh less than a rare one: %v >= %v", c.Score(1, common), c.Score(3, rare))
 	}
 }
+
+// -----------------------------------------------------------------------------
+// [Test Level]: Unit Test
+// [Purpose]: Verifies the tokenizer switches: stopwords kept, plurals kept, and Configure setting Tokenize's default.
+// [Execution Surface]: Pure function
+// [Assertions]: Each option changes only its own normalisation; Configure changes Tokenize until reset.
+// -----------------------------------------------------------------------------
+func TestTokenizeOptions(t *testing.T) {
+	text := "What are the tasks"
+	cases := map[textrank.Options][]string{
+		{}:                    {"task"},
+		{KeepStopwords: true}: {"what", "are", "the", "task"},
+		{NoPluralFold: true}:  {"tasks"},
+		{KeepStopwords: true, NoPluralFold: true}: {"what", "are", "the", "tasks"},
+	}
+	for opts, want := range cases {
+		if got := textrank.TokenizeWith(text, opts); !reflect.DeepEqual(got, want) {
+			t.Errorf("TokenizeWith(%+v) = %v, want %v", opts, got, want)
+		}
+	}
+	textrank.Configure(textrank.Options{KeepStopwords: true})
+	defer textrank.Configure(textrank.Options{})
+	if got := textrank.Tokenize(text); !reflect.DeepEqual(got, []string{"what", "are", "the", "task"}) {
+		t.Errorf("Tokenize after Configure = %v", got)
+	}
+}

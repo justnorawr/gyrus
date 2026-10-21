@@ -28,18 +28,37 @@ func stem(t string) string {
 	return t
 }
 
-// Tokenize lowercases text and splits it into terms: letters and digits, with stopwords dropped. A hyphenated or
-// underscored word yields itself and its parts, so "agent-ops" matches both "agent-ops" and "agent ops".
-func Tokenize(text string) []string {
+// Options switches the tokenizer's normalisations. The zero value is the default: stopwords dropped, plurals folded.
+type Options struct {
+	KeepStopwords bool // keep stopwords as terms
+	NoPluralFold  bool // keep plurals as written
+}
+
+var options Options
+
+// Configure sets the Options Tokenize uses; the app calls it once from configuration before any search.
+func Configure(o Options) { options = o }
+
+// Tokenize is TokenizeWith the configured Options.
+func Tokenize(text string) []string { return TokenizeWith(text, options) }
+
+// TokenizeWith lowercases text and splits it into terms: letters and digits, by default with stopwords dropped and
+// plurals folded. A hyphenated or underscored word yields itself and its parts, so "agent-ops" matches both
+// "agent-ops" and "agent ops".
+func TokenizeWith(text string, o Options) []string {
 	words := strings.FieldsFunc(strings.ToLower(text), func(r rune) bool {
 		return !unicode.IsLetter(r) && !unicode.IsDigit(r) && r != '-' && r != '_'
 	})
 	var out []string
 	add := func(w string) {
 		w = strings.Trim(w, "-_")
-		if w != "" && !stopwords[w] {
-			out = append(out, stem(w))
+		if w == "" || !o.KeepStopwords && stopwords[w] {
+			return
 		}
+		if !o.NoPluralFold {
+			w = stem(w)
+		}
+		out = append(out, w)
 	}
 	for _, w := range words {
 		add(w)
