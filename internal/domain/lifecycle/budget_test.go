@@ -31,8 +31,8 @@ func TestEngineSuggestContextWithBudget(t *testing.T) {
 	if err != nil {
 		t.Fatalf("SuggestContextWithBudget failed: %v", err)
 	}
-	if lifecycle.EstimateTokens(layer) > 200 {
-		t.Errorf("layer of %d estimated tokens exceeds 200:\n%s", lifecycle.EstimateTokens(layer), layer)
+	if lifecycle.EstimateTokensFromBytes(layer) > 200 {
+		t.Errorf("layer of %d estimated tokens exceeds 200:\n%s", lifecycle.EstimateTokensFromBytes(layer), layer)
 	}
 	if !strings.Contains(layer, "## Restart the queue") || strings.Contains(layer, "Filler sentence") {
 		t.Errorf("expected only the matching section:\n%s", layer)

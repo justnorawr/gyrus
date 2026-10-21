@@ -22,9 +22,10 @@ func omittedNote(doc gyrus.Concept, n int) string {
 	return fmt.Sprintf("[%d more sections: gyrus get %s]\n\n", n, doc.Name)
 }
 
-// EstimateTokens conservatively estimates the token count of s at 3.5 bytes per token, rounded up. Estimates of
-// pieces add up to at least the estimate of their concatenation, so a sum of piece estimates is a safe bound.
-func EstimateTokens(s string) int {
+// EstimateTokensFromBytes conservatively estimates the token count of s from its length in bytes, at 3.5 bytes per
+// token, rounded up. len(s) counts UTF-8 bytes, not characters, so non-ASCII text estimates high, never low. Estimates
+// of pieces add up to at least the estimate of their concatenation, so a sum of piece estimates is a safe bound.
+func EstimateTokensFromBytes(s string) int {
 	return (2*len(s) + 6) / 7
 }
 
@@ -86,7 +87,7 @@ func truncateAtParagraphs(text string, maxTokens int) (string, bool) {
 		if kept != "" {
 			next = kept + "\n\n" + para
 		}
-		if EstimateTokens(next+truncationMark+"\n\n") > maxTokens {
+		if EstimateTokensFromBytes(next+truncationMark+"\n\n") > maxTokens {
 			break
 		}
 		kept = next
@@ -133,7 +134,7 @@ func renderBudgeted(prompt, projectBanner, refBanner string, project, ref []gyru
 		}
 	}
 
-	budget := maxTokens - EstimateTokens(contextLayerHeader)
+	budget := maxTokens - EstimateTokensFromBytes(contextLayerHeader)
 	if budget < 0 {
 		return ""
 	}
@@ -143,12 +144,12 @@ func renderBudgeted(prompt, projectBanner, refBanner string, project, ref []gyru
 		if chosen[i] != nil {
 			return 0
 		}
-		cost := EstimateTokens(conceptBanner(docs[i])) + EstimateTokens(omittedNote(docs[i], len(sections[i])))
+		cost := EstimateTokensFromBytes(conceptBanner(docs[i])) + EstimateTokensFromBytes(omittedNote(docs[i], len(sections[i])))
 		if !groupOpen[isProject(i)] {
 			if isProject(i) {
-				cost += EstimateTokens(projectBanner)
+				cost += EstimateTokensFromBytes(projectBanner)
 			} else {
-				cost += EstimateTokens(refBanner)
+				cost += EstimateTokensFromBytes(refBanner)
 			}
 		}
 		return cost
@@ -178,10 +179,10 @@ func renderBudgeted(prompt, projectBanner, refBanner string, project, ref []gyru
 			}
 		}
 		open := openCost(i)
-		if cost := open + EstimateTokens(best.sec.text+"\n\n"); cost <= budget {
+		if cost := open + EstimateTokensFromBytes(best.sec.text+"\n\n"); cost <= budget {
 			take(i, best.sec, best.sec.text, cost)
 		} else if text, ok := truncateAtParagraphs(best.sec.text, budget-open); ok {
-			take(i, best.sec, text, open+EstimateTokens(text+"\n\n"))
+			take(i, best.sec, text, open+EstimateTokensFromBytes(text+"\n\n"))
 		}
 	}
 
@@ -192,7 +193,7 @@ func renderBudgeted(prompt, projectBanner, refBanner string, project, ref []gyru
 				continue
 			}
 		}
-		if cost := openCost(c.doc) + EstimateTokens(c.sec.text+"\n\n"); cost <= budget {
+		if cost := openCost(c.doc) + EstimateTokensFromBytes(c.sec.text+"\n\n"); cost <= budget {
 			take(c.doc, c.sec, c.sec.text, cost)
 		}
 	}
