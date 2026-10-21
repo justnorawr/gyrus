@@ -72,6 +72,18 @@ func TokenizeWith(text string, o Options) []string {
 	return out
 }
 
+// ForQuery returns the Options to tokenize a query and the text it is scored against, and the query's distinct
+// terms. A query made only of stopwords ("what is this?") keeps them on both sides, so it still matches something
+// instead of nothing.
+func ForQuery(query string) (Options, []string) {
+	if terms := Unique(TokenizeWith(query, options)); len(terms) > 0 {
+		return options, terms
+	}
+	o := options
+	o.KeepStopwords = true
+	return o, Unique(TokenizeWith(query, o))
+}
+
 // Unique returns the distinct terms of a token list in first-seen order.
 func Unique(tokens []string) []string {
 	seen := make(map[string]bool, len(tokens))
@@ -113,6 +125,9 @@ func NewCorpus(docs [][]string) *Corpus {
 	}
 	return c
 }
+
+// TermFreq is how many times term occurs in document i.
+func (c *Corpus) TermFreq(i int, term string) int { return c.tf[i][term] }
 
 // Score is the BM25 score of document i for the distinct query terms; zero when no term occurs in it.
 func (c *Corpus) Score(i int, terms []string) float64 {
