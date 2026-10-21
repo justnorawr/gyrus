@@ -275,3 +275,37 @@ func TestCLI_SuggestContextHook(t *testing.T) {
 		t.Errorf("a bad payload must print nothing and report on stderr, got %q / %q", out, stderr)
 	}
 }
+
+// -----------------------------------------------------------------------------
+// [Test Level]: E2E CLI Integration Test
+// [Purpose]: Verifies that 'gyrus suggest-context --json' is valid JSON whatever bytes a concept holds.
+// [Execution Surface]: Compiled ./gyrus CLI binary via os/exec subprocess
+// [Assertions]: a concept with an ANSI escape and a vertical tab decodes with encoding/json and round-trips them.
+// -----------------------------------------------------------------------------
+func TestCLI_SuggestContextJSONControlBytes(t *testing.T) {
+	workspace := t.TempDir()
+	initCmd := exec.Command(gyrusBinPath, "config", "init", "--profile", "local")
+	initCmd.Dir = workspace
+	if out, err := initCmd.CombinedOutput(); err != nil {
+		t.Fatalf("Init failed: %v\nOutput: %s", err, string(out))
+	}
+	body := "# Colours\n\nThe \x1b[31mred\x1b[0m queue and a \v tab."
+	createCmd := exec.Command(gyrusBinPath, "create", "--id", "guide-colours", "--title", "Colours", "--category", "operations", "--type", "guide", "--status", "active", "--content", body)
+	createCmd.Dir = workspace
+	if out, err := createCmd.CombinedOutput(); err != nil {
+		t.Fatalf("Create failed: %v\nOutput: %s", err, string(out))
+	}
+	cmd := exec.Command(gyrusBinPath, "suggest-context", "--prompt", "red queue", "--json")
+	cmd.Dir = workspace
+	out, err := cmd.Output()
+	if err != nil {
+		t.Fatalf("suggest-context --json failed: %v", err)
+	}
+	var res map[string]string
+	if err := json.Unmarshal(out, &res); err != nil {
+		t.Fatalf("output is not valid JSON: %v\n%q", err, out)
+	}
+	if !strings.Contains(res["context"], "\x1b[31mred") || !strings.Contains(res["context"], "\v") {
+		t.Errorf("control bytes must round-trip, got %q", res["context"])
+	}
+}
