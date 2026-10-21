@@ -2,6 +2,7 @@ package commands
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/armckinney/gyrus/internal/app"
@@ -55,7 +56,12 @@ func NewSuggestContextCmd(application *app.App) *cobra.Command {
 			}
 
 			if GlobalJSONOutput {
-				fmt.Printf("{\"context\": %q}\n", contextLayer)
+				// json.Marshal, not %q: Go quoting writes \x1b and \v, which are not JSON.
+				data, err := json.Marshal(map[string]string{"context": contextLayer})
+				if err != nil {
+					return err
+				}
+				fmt.Println(string(data))
 			} else {
 				fmt.Print(contextLayer)
 			}
