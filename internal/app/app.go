@@ -131,7 +131,7 @@ func (a *App) Engine() (*lifecycle.Engine, error) {
 	searchCfg := a.resolved.Config.Search
 	textrank.Configure(textrank.Options{
 		KeepStopwords: searchCfg.Stopwords != nil && !*searchCfg.Stopwords,
-		NoPluralFold:  searchCfg.PluralFolding != nil && !*searchCfg.PluralFolding,
+		FoldPlurals:   searchCfg.PluralFolding != nil && *searchCfg.PluralFolding,
 	})
 
 	indexer, err := provider.NewIndexStore(a.resolved.Config, a.resolved.StorageRoot, store)

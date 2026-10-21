@@ -9,13 +9,13 @@ import (
 
 // -----------------------------------------------------------------------------
 // [Test Level]: Unit Test
-// [Purpose]: Verifies tokenization: lowercasing, stopwords, plural folding and hyphenated words.
+// [Purpose]: Verifies tokenization: lowercasing, stopwords dropped, plurals kept, and hyphenated words.
 // [Execution Surface]: Pure function
-// [Assertions]: "How do I send Tasks on the agent-ops bus?" yields send, task, agent-op, agent, ops, bus.
+// [Assertions]: "How do I send Tasks on the agent-ops bus?" yields send, tasks, agent-ops, agent, ops, bus.
 // -----------------------------------------------------------------------------
 func TestTokenize(t *testing.T) {
 	got := textrank.Tokenize("How do I send Tasks on the agent-ops bus?")
-	want := []string{"send", "task", "agent-op", "agent", "ops", "bus"}
+	want := []string{"send", "tasks", "agent-ops", "agent", "ops", "bus"}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("Tokenize = %v, want %v", got, want)
 	}
@@ -55,17 +55,17 @@ func TestCorpusScore(t *testing.T) {
 
 // -----------------------------------------------------------------------------
 // [Test Level]: Unit Test
-// [Purpose]: Verifies the tokenizer switches: stopwords kept, plurals kept, and Configure setting Tokenize's default.
+// [Purpose]: Verifies the tokenizer switches: stopwords kept, plurals folded, and Configure setting Tokenize's default.
 // [Execution Surface]: Pure function
 // [Assertions]: Each option changes only its own normalisation; Configure changes Tokenize until reset.
 // -----------------------------------------------------------------------------
 func TestTokenizeOptions(t *testing.T) {
 	text := "What are the tasks"
 	cases := map[textrank.Options][]string{
-		{}:                    {"task"},
-		{KeepStopwords: true}: {"what", "are", "the", "task"},
-		{NoPluralFold: true}:  {"tasks"},
-		{KeepStopwords: true, NoPluralFold: true}: {"what", "are", "the", "tasks"},
+		{}:                                       {"tasks"},
+		{KeepStopwords: true}:                    {"what", "are", "the", "tasks"},
+		{FoldPlurals: true}:                      {"task"},
+		{KeepStopwords: true, FoldPlurals: true}: {"what", "are", "the", "task"},
 	}
 	for opts, want := range cases {
 		if got := textrank.TokenizeWith(text, opts); !reflect.DeepEqual(got, want) {
@@ -74,7 +74,7 @@ func TestTokenizeOptions(t *testing.T) {
 	}
 	textrank.Configure(textrank.Options{KeepStopwords: true})
 	defer textrank.Configure(textrank.Options{})
-	if got := textrank.Tokenize(text); !reflect.DeepEqual(got, []string{"what", "are", "the", "task"}) {
+	if got := textrank.Tokenize(text); !reflect.DeepEqual(got, []string{"what", "are", "the", "tasks"}) {
 		t.Errorf("Tokenize after Configure = %v", got)
 	}
 }
