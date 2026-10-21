@@ -1,0 +1,8 @@
+{
+  "description": "Nora's fork of the gyrus context engine (justnorawr/gyrus, upstream armckinney/gyrus): the index and prompt-time lookup over the noratics-wiki store. Part G of the noratics-ai plan.",
+  "limits": [
+    "Writes nothing into any other repo; noratics-wiki holds the documents and noratics-agent-ops calls the engine.",
+    "Never holds or logs a credential.",
+    "Keeps CLAUDE.md and noratics-agent.json out of the pull requests sent upstream to armckinney/gyrus."
+  ]
+}
