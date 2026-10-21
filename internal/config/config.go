@@ -15,7 +15,7 @@ type Config struct {
 	} `yaml:"graph" json:"graph"`
 	Search struct {
 		Provider string `yaml:"provider" json:"provider"`
-		// Stopwords and PluralFolding switch the OKF tokenizer's normalisations; unset means on.
+		// Stopwords switches the stopword list (unset: on); PluralFolding folds plurals (unset: off; measured worse, tests/eval).
 		Stopwords     *bool `yaml:"stopwords,omitempty" json:"stopwords,omitempty"`
 		PluralFolding *bool `yaml:"plural_folding,omitempty" json:"plural_folding,omitempty"`
 	} `yaml:"search" json:"search"`

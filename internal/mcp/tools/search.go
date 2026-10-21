@@ -34,7 +34,7 @@ func (h *Handler) registerSearchTools(s *server.MCPServer) {
 		mcp.WithString("scope", mcp.Description("Context scope (project, reference, all)")),
 		mcp.WithString("project", mcp.Description("Explicit project name")),
 		mcp.WithNumber("max_concepts", mcp.Description("Maximum concepts to return")),
-		mcp.WithNumber("max_tokens", mcp.Description("Maximum estimated tokens; defaults to 4000. The layer holds the best-matching sections that fit")),
+		mcp.WithNumber("max_tokens", mcp.Description("Token budget, enforced; 4000 when absent. The layer holds the best-matching sections whose estimate fits; 0 returns whole concepts; negative is an error")),
 		mcp.WithString("plan", mcp.Description("Boost matched concepts that name this plan; defaults to $NORATICS_PLAN of the server")),
 	)
 	s.AddTool(suggestTool, h.HandleSuggest)
@@ -79,9 +79,12 @@ func (h *Handler) HandleSuggest(ctx context.Context, req mcp.CallToolRequest) (*
 	if maxConcepts <= 0 {
 		maxConcepts = 5
 	}
-	maxTokens := getArgInt(req, "max_tokens")
-	if maxTokens <= 0 {
-		maxTokens = 4000
+	maxTokens := 4000
+	if hasArg(req, "max_tokens") {
+		maxTokens = getArgInt(req, "max_tokens")
+	}
+	if maxTokens < 0 {
+		return mcp.NewToolResultError(fmt.Sprintf("suggest failed: max_tokens must be 0 (whole concepts) or more, got %d", maxTokens)), nil
 	}
 
 	plan := getArgString(req, "plan")

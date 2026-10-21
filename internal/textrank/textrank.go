@@ -28,10 +28,11 @@ func stem(t string) string {
 	return t
 }
 
-// Options switches the tokenizer's normalisations. The zero value is the default: stopwords dropped, plurals folded.
+// Options switches the tokenizer's normalisations. The zero value is the default: stopwords dropped, plurals kept
+// (folding them measured worse on the wiki store, tests/eval).
 type Options struct {
 	KeepStopwords bool // keep stopwords as terms
-	NoPluralFold  bool // keep plurals as written
+	FoldPlurals   bool // fold plurals onto singulars (opt-in)
 }
 
 var options Options
@@ -43,7 +44,7 @@ func Configure(o Options) { options = o }
 func Tokenize(text string) []string { return TokenizeWith(text, options) }
 
 // TokenizeWith lowercases text and splits it into terms: letters and digits, by default with stopwords dropped and
-// plurals folded. A hyphenated or underscored word yields itself and its parts, so "agent-ops" matches both
+// plurals kept. A hyphenated or underscored word yields itself and its parts, so "agent-ops" matches both
 // "agent-ops" and "agent ops".
 func TokenizeWith(text string, o Options) []string {
 	words := strings.FieldsFunc(strings.ToLower(text), func(r rune) bool {
@@ -55,7 +56,7 @@ func TokenizeWith(text string, o Options) []string {
 		if w == "" || !o.KeepStopwords && stopwords[w] {
 			return
 		}
-		if !o.NoPluralFold {
+		if o.FoldPlurals {
 			w = stem(w)
 		}
 		out = append(out, w)

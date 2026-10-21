@@ -32,10 +32,10 @@ type variant struct {
 }
 
 var variants = []variant{
-	{"stopwords off, plurals folded (default)", textrank.Options{}},
-	{"stopwords kept, plurals folded", textrank.Options{KeepStopwords: true}},
-	{"stopwords off, plurals kept", textrank.Options{NoPluralFold: true}},
-	{"stopwords kept, plurals kept", textrank.Options{KeepStopwords: true, NoPluralFold: true}},
+	{"stopwords off, plurals kept (default)", textrank.Options{}},
+	{"stopwords kept, plurals kept", textrank.Options{KeepStopwords: true}},
+	{"stopwords off, plurals folded", textrank.Options{FoldPlurals: true}},
+	{"stopwords kept, plurals folded", textrank.Options{KeepStopwords: true, FoldPlurals: true}},
 }
 
 // scores accumulates per-query metrics for one variant and one slice of the query set.

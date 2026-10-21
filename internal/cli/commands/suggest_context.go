@@ -52,6 +52,9 @@ func NewSuggestContextCmd(application *app.App) *cobra.Command {
 			if maxConcepts <= 0 {
 				maxConcepts = 5
 			}
+			if maxTokens < 0 {
+				return fmt.Errorf("--max-tokens must be 0 (whole concepts) or more, got %d", maxTokens)
+			}
 
 			effectiveScope := ""
 			if cmd.Flags().Changed("scope") {
@@ -105,7 +108,7 @@ func NewSuggestContextCmd(application *app.App) *cobra.Command {
 	cmd.Flags().StringVar(&project, "project", "", "Explicit project name to scope context to")
 	cmd.Flags().StringVar(&category, "category", "", "Filter by category")
 	cmd.Flags().IntVar(&maxConcepts, "max-concepts", 5, "Maximum number of concepts to include")
-	cmd.Flags().IntVar(&maxTokens, "max-tokens", 4000, "Maximum estimated tokens; the layer holds the best-matching sections that fit (0 returns whole concepts)")
+	cmd.Flags().IntVar(&maxTokens, "max-tokens", 4000, "Token budget, enforced: the layer holds the best-matching sections whose estimate fits; 0 returns whole concepts; a budget too small for any paragraph returns only the header")
 	cmd.Flags().StringVar(&plan, "plan", os.Getenv("NORATICS_PLAN"), "Boost matched concepts that name this plan (default $NORATICS_PLAN)")
 	cmd.Flags().BoolVar(&hook, "hook", false, "Run as a Claude Code UserPromptSubmit hook: read the hook payload on stdin, resolve config from its cwd, print the context as hook JSON (nothing when no concept matches)")
 
