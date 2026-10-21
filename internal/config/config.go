@@ -15,6 +15,9 @@ type Config struct {
 	} `yaml:"graph" json:"graph"`
 	Search struct {
 		Provider string `yaml:"provider" json:"provider"`
+		// Stopwords and PluralFolding switch the OKF tokenizer's normalisations; unset means on.
+		Stopwords     *bool `yaml:"stopwords,omitempty" json:"stopwords,omitempty"`
+		PluralFolding *bool `yaml:"plural_folding,omitempty" json:"plural_folding,omitempty"`
 	} `yaml:"search" json:"search"`
 	Project     string `yaml:"project" json:"project"`
 	Tenant      string `yaml:"tenant" json:"tenant"`

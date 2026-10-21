@@ -8,6 +8,7 @@ import (
 	"github.com/armckinney/gyrus/internal/config"
 	"github.com/armckinney/gyrus/internal/domain/lifecycle"
 	"github.com/armckinney/gyrus/internal/provider"
+	"github.com/armckinney/gyrus/internal/textrank"
 )
 
 // App is the central dependency injection service container for Gyrus.
@@ -126,6 +127,12 @@ func (a *App) Engine() (*lifecycle.Engine, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed initializing storage provider: %w", err)
 	}
+
+	searchCfg := a.resolved.Config.Search
+	textrank.Configure(textrank.Options{
+		KeepStopwords: searchCfg.Stopwords != nil && !*searchCfg.Stopwords,
+		NoPluralFold:  searchCfg.PluralFolding != nil && !*searchCfg.PluralFolding,
+	})
 
 	indexer, err := provider.NewIndexStore(a.resolved.Config, a.resolved.StorageRoot, store)
 	if err != nil {
