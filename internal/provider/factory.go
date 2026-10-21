@@ -15,6 +15,7 @@ import (
 	"github.com/armckinney/gyrus/internal/provider/storage/git"
 	"github.com/armckinney/gyrus/internal/provider/storage/localfs"
 	"github.com/armckinney/gyrus/internal/provider/storage/postgres"
+	"github.com/armckinney/gyrus/internal/provider/storage/wiki"
 	"github.com/armckinney/gyrus/pkg/gyrus"
 )
 
@@ -106,6 +107,9 @@ func NewConceptStore(cfg *config.Config, storageRoot string) (gyrus.ConceptStore
 			return nil, fmt.Errorf("postgres storage provider selected but postgres.connection_string is empty in config file (.gyrus.yaml)")
 		}
 		return postgres.NewStore(context.Background(), cfg.Postgres.ConnectionString)
+
+	case "wiki":
+		return wiki.NewStore(storageRoot, cfg.TenantName())
 
 	case "localfs", "":
 		return localfs.NewStoreWithProject(storageRoot, cfg.ProjectName())
