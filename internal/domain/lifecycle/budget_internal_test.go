@@ -57,7 +57,7 @@ func TestRenderBudgetedStaysWithinBudget(t *testing.T) {
 	project, ref := budgetDocs()
 	for _, budget := range []int{40, 100, 250, 500, 1000, 2000, 6000} {
 		out := renderBudgeted("how do I roll back a release", "[PROJECT CONTEXT: app]\n\n", "[SHARED REFERENCE LAYER: root]\n\n", project, ref, budget)
-		if got := EstimateTokens(out); got > budget {
+		if got := EstimateTokensFromBytes(out); got > budget {
 			t.Errorf("budget %d: estimate %d exceeds it:\n%s", budget, got, out)
 		}
 	}
@@ -76,7 +76,7 @@ func TestRenderBudgetedStaysWithinBudget(t *testing.T) {
 	}
 
 	big := renderBudgeted("release", "", "[SHARED REFERENCE LAYER: root]\n\n", nil, ref[1:], 500)
-	if !strings.Contains(big, truncationMark) || EstimateTokens(big) > 500 {
-		t.Errorf("oversized section must be cut at a paragraph within budget (estimate %d):\n%s", EstimateTokens(big), big)
+	if !strings.Contains(big, truncationMark) || EstimateTokensFromBytes(big) > 500 {
+		t.Errorf("oversized section must be cut at a paragraph within budget (estimate %d):\n%s", EstimateTokensFromBytes(big), big)
 	}
 }
