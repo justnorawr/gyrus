@@ -54,6 +54,11 @@ func TestSearchRanksByBM25WithScopeBoostOnTheMatch(t *testing.T) {
 		}
 	}
 
+	stop, err := sharedokf.Search(ctx, docs, gyrus.SearchQuery{Query: "what is this", Filter: filter})
+	if err != nil || len(stop) == 0 {
+		t.Errorf("a query of stopwords alone must still match, got %d results (%v)", len(stop), err)
+	}
+
 	planned := concept("root/reference/planned", "reference", "", "Same", "queue restart")
 	planned.Plans = []string{"buildings"}
 	offPlan := concept("root/reference/off", "reference", "", "Other", "unrelated words")
