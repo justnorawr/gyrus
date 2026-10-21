@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/armckinney/gyrus/internal/domain/okf"
+	"github.com/armckinney/gyrus/internal/provider/storage/wiki"
 	"github.com/armckinney/gyrus/pkg/gyrus"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
@@ -15,16 +17,18 @@ import (
 func (h *Handler) registerDocumentTools(s *server.MCPServer) {
 	// 1. gyrus_create
 	createTool := mcp.NewTool("gyrus_create",
-		mcp.WithDescription("Create a new OKF contract concept"),
-		mcp.WithString("id", mcp.Required(), mcp.Description("Concept ID (^[a-z0-9-_]+$)")),
+		mcp.WithDescription("Create a new OKF contract concept. Over a wiki store, returns the new C3 document instead, for the caller to file by pull request; nothing is written"),
+		mcp.WithString("id", mcp.Required(), mcp.Description("Concept ID (^[a-z0-9-_]+$); for a wiki store, the wiki path without .md (shared/<name>, repos/<repo>/<name>, plans/<plan>/<name>)")),
 		mcp.WithString("title", mcp.Required(), mcp.Description("Concept Title")),
-		mcp.WithString("category", mcp.Required(), mcp.Description("Category (architecture|business-logic|product|operations|technical)")),
+		mcp.WithString("category", mcp.Description("Category (architecture|business-logic|product|operations|technical); required except for a wiki store")),
 		mcp.WithString("type", mcp.Required(), mcp.Description("Type (adr|prd|guide|specification|...)")),
 		mcp.WithString("tenant", mcp.Description("Tenant (default: root)")),
 		mcp.WithString("status", mcp.Description("Status (draft|proposed|active)")),
 		mcp.WithString("scope", mcp.Description("Target scope (project or reference)")),
 		mcp.WithString("project", mcp.Description("Target project name")),
 		mcp.WithString("content", mcp.Description("Body content")),
+		mcp.WithString("tags", mcp.Description("Comma-separated tags (wiki store)")),
+		mcp.WithString("plans", mcp.Description("Comma-separated plan names the document links to (wiki store); defaults to $NORATICS_PLAN of the server")),
 	)
 	s.AddTool(createTool, h.HandleCreate)
 
@@ -69,6 +73,20 @@ func (h *Handler) HandleCreate(ctx context.Context, req mcp.CallToolRequest) (*m
 	scope := getArgString(req, "scope")
 	project := getArgString(req, "project")
 	content := getArgString(req, "content")
+
+	if store, ok := h.engine.Store().(*wiki.Store); ok {
+		draft, err := store.Draft(wiki.Draft{
+			ID: id, Title: title, Type: docType, Tags: splitList(getArgString(req, "tags")),
+			Plans: wiki.ParsePlans(getArgString(req, "plans")), Body: content,
+		}, time.Now())
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("create failed: %v", err)), nil
+		}
+		return mcp.NewToolResultText(fmt.Sprintf("Not written: the wiki store changes by pull request. File this as %s.md:\n\n%s", id, draft)), nil
+	}
+	if category == "" {
+		return mcp.NewToolResultError("create failed: category is required"), nil
+	}
 
 	if status == "" {
 		status = "draft"
@@ -151,4 +169,15 @@ func (h *Handler) HandleArchive(ctx context.Context, req mcp.CallToolRequest) (*
 		return mcp.NewToolResultError(fmt.Sprintf("archive failed: %v", err)), nil
 	}
 	return mcp.NewToolResultText(fmt.Sprintf("Concept '%s' archived successfully", id)), nil
+}
+
+// splitList splits a comma-separated list, dropping blanks.
+func splitList(list string) []string {
+	var out []string
+	for _, item := range strings.Split(list, ",") {
+		if item = strings.TrimSpace(item); item != "" {
+			out = append(out, item)
+		}
+	}
+	return out
 }

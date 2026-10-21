@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/armckinney/gyrus/internal/app"
+	"github.com/armckinney/gyrus/internal/provider/storage/wiki"
 	"github.com/armckinney/gyrus/pkg/gyrus"
 	"github.com/spf13/cobra"
 )
@@ -26,11 +28,13 @@ func NewCreateCmd(application *app.App) *cobra.Command {
 		contentFile string
 		scope       string
 		project     string
+		plans       string
+		out         string
 	)
 
 	cmd := &cobra.Command{
 		Use:   "create",
-		Short: "Create a new OKF contract concept",
+		Short: "Create a new OKF contract concept (over a wiki store: print a new C3 document, never write the store)",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			engine, err := application.Engine()
 			if err != nil {
@@ -49,6 +53,25 @@ func NewCreateCmd(application *app.App) *cobra.Command {
 			var tagsList []string
 			if tags != "" {
 				tagsList = strings.Split(tags, ",")
+			}
+
+			if store, ok := engine.Store().(*wiki.Store); ok {
+				draft, err := store.Draft(wiki.Draft{ID: id, Title: title, Type: conceptType, Tags: tagsList, Plans: wiki.ParsePlans(plans), Body: body}, time.Now())
+				if err != nil {
+					return err
+				}
+				if out == "" {
+					fmt.Print(draft)
+					return nil
+				}
+				if err := os.WriteFile(out, []byte(draft), 0o644); err != nil {
+					return err
+				}
+				fmt.Fprintf(cmd.ErrOrStderr(), "Wrote %s; file it in the wiki as %s.md by pull request\n", out, id)
+				return nil
+			}
+			if category == "" {
+				return fmt.Errorf(`required flag(s) "category" not set`)
 			}
 
 			docStatus := status
@@ -119,10 +142,11 @@ func NewCreateCmd(application *app.App) *cobra.Command {
 	cmd.Flags().StringVar(&project, "project", "", "Target project name (defaults to configured project)")
 	cmd.Flags().StringVar(&content, "content", "", "Inline concept body content")
 	cmd.Flags().StringVar(&contentFile, "content-file", "", "Path to file containing concept body content")
+	cmd.Flags().StringVar(&plans, "plans", "", "Wiki store: comma-separated plans the document links to (default $NORATICS_PLAN)")
+	cmd.Flags().StringVar(&out, "out", "", "Wiki store: write the new document to this path instead of stdout")
 
 	_ = cmd.MarkFlagRequired("id")
 	_ = cmd.MarkFlagRequired("title")
-	_ = cmd.MarkFlagRequired("category")
 	_ = cmd.MarkFlagRequired("type")
 
 	return cmd

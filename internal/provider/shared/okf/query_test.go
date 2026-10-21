@@ -54,6 +54,16 @@ func TestSearchRanksByBM25WithScopeBoostOnTheMatch(t *testing.T) {
 		}
 	}
 
+	planned := concept("root/reference/planned", "reference", "", "Same", "queue restart")
+	planned.Plans = []string{"buildings"}
+	offPlan := concept("root/reference/off", "reference", "", "Other", "unrelated words")
+	offPlan.Plans = []string{"buildings"}
+	results, err = sharedokf.Search(ctx, scanner{concept("root/reference/same", "reference", "", "Same", "queue restart"), planned, offPlan},
+		gyrus.SearchQuery{Query: "queue restart", Filter: gyrus.SearchFilter{Plan: "buildings"}})
+	if err != nil || len(results) != 2 || results[0].Concept.Name != "root/reference/planned" {
+		t.Fatalf("a matched concept naming the plan must rank first, and the plan must not make a concept match: %+v %v", results, err)
+	}
+
 	results, err = sharedokf.Search(ctx, scanner{
 		concept("root/reference/same", "reference", "", "Same", "queue restart"),
 		concept("root/projects/app/same", "project", "app", "Same", "queue restart"),

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 
 	"github.com/armckinney/gyrus/pkg/gyrus"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -34,6 +35,7 @@ func (h *Handler) registerSearchTools(s *server.MCPServer) {
 		mcp.WithString("project", mcp.Description("Explicit project name")),
 		mcp.WithNumber("max_concepts", mcp.Description("Maximum concepts to return")),
 		mcp.WithNumber("max_tokens", mcp.Description("Maximum estimated tokens; defaults to 4000. The layer holds the best-matching sections that fit")),
+		mcp.WithString("plan", mcp.Description("Boost matched concepts that name this plan; defaults to $NORATICS_PLAN of the server")),
 	)
 	s.AddTool(suggestTool, h.HandleSuggest)
 }
@@ -82,9 +84,15 @@ func (h *Handler) HandleSuggest(ctx context.Context, req mcp.CallToolRequest) (*
 		maxTokens = 4000
 	}
 
+	plan := getArgString(req, "plan")
+	if plan == "" {
+		plan = os.Getenv("NORATICS_PLAN")
+	}
+
 	filter := gyrus.SearchFilter{
 		Scope:   scopeStr,
 		Project: projectStr,
+		Plan:    plan,
 	}
 
 	contextLayer, err := h.engine.SuggestContextWithBudget(ctx, prompt, filter, maxConcepts, maxTokens)

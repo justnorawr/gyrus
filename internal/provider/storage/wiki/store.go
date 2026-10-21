@@ -8,6 +8,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -28,6 +29,7 @@ type frontmatter struct {
 	Type    string   `yaml:"type"`
 	Repo    string   `yaml:"repo"`
 	Plan    string   `yaml:"plan"`
+	Plans   []string `yaml:"plans"`
 	Tags    []string `yaml:"tags"`
 	Updated string   `yaml:"updated"`
 }
@@ -217,6 +219,7 @@ func (s *Store) parse(rel string, data []byte) (gyrus.Concept, error) {
 		Version:  1,
 		Status:   "published",
 		Tags:     fm.Tags,
+		Plans:    linkedPlans(fm),
 		Scope:    "reference",
 		Project:  project,
 		Content:  body,
@@ -228,6 +231,15 @@ func (s *Store) parse(rel string, data []byte) (gyrus.Concept, error) {
 		doc.LastUpdated = updated
 	}
 	return doc, nil
+}
+
+// linkedPlans is a document's plans: the `plans` list, or the single `plan` a document inside plans/<name>/ carries.
+func linkedPlans(fm frontmatter) []string {
+	plans := append([]string{}, fm.Plans...)
+	if fm.Plan != "" && !slices.Contains(plans, fm.Plan) {
+		plans = append(plans, fm.Plan)
+	}
+	return plans
 }
 
 // Get returns the concept with the given qualified name.
