@@ -42,6 +42,7 @@ func NewSuggestContextCmd(application *app.App) *cobra.Command {
 		category    string
 		maxConcepts int
 		hook        bool
+		plan        string
 	)
 
 	cmd := &cobra.Command{
@@ -65,6 +66,7 @@ func NewSuggestContextCmd(application *app.App) *cobra.Command {
 				Category: gyrus.Category(category),
 				Scope:    effectiveScope,
 				Project:  effectiveProject,
+				Plan:     plan,
 			}
 
 			if hook {
@@ -104,6 +106,7 @@ func NewSuggestContextCmd(application *app.App) *cobra.Command {
 	cmd.Flags().StringVar(&category, "category", "", "Filter by category")
 	cmd.Flags().IntVar(&maxConcepts, "max-concepts", 5, "Maximum number of concepts to include")
 	cmd.Flags().IntVar(&maxTokens, "max-tokens", 4000, "Maximum estimated tokens; the layer holds the best-matching sections that fit (0 returns whole concepts)")
+	cmd.Flags().StringVar(&plan, "plan", os.Getenv("NORATICS_PLAN"), "Boost matched concepts that name this plan (default $NORATICS_PLAN)")
 	cmd.Flags().BoolVar(&hook, "hook", false, "Run as a Claude Code UserPromptSubmit hook: read the hook payload on stdin, resolve config from its cwd, print the context as hook JSON (nothing when no concept matches)")
 
 	return cmd

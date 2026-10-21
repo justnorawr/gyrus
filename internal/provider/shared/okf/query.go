@@ -19,6 +19,8 @@ const (
 	// matches but never makes a concept match.
 	projectBoost   = 1.5
 	referenceBoost = 1.2
+	// planBoost multiplies the score of a matched concept that names the filter's plan, on top of the scope boost.
+	planBoost = 1.5
 	// identityRepeat and tagRepeat weight the name, title and tags by repeating their terms in the indexed text.
 	identityRepeat = 3
 	tagRepeat      = 2
@@ -133,6 +135,9 @@ func score(doc gyrus.Concept, ix indexed, bm25 float64, raw string, terms []stri
 		reason = "Project Match"
 	} else if doc.Scope == "reference" {
 		value *= referenceBoost
+	}
+	if f.Plan != "" && slices.Contains(doc.Plans, f.Plan) {
+		value *= planBoost
 	}
 	if exact {
 		value += exactIDBoost

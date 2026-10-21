@@ -171,6 +171,9 @@ func NewEngineWithProject(store gyrus.ConceptStore, search gyrus.SearchProvider,
 }
 
 // DefaultProject returns the engine's default project name.
+// Store returns the concept store the engine was built over.
+func (e *Engine) Store() gyrus.ConceptStore { return e.store }
+
 func (e *Engine) DefaultProject() string {
 	return e.defaultProject
 }

@@ -51,6 +51,7 @@ type Concept struct {
 	Links          []ConceptLink `json:"links,omitempty" yaml:"links,omitempty"`
 	Scope          string        `json:"scope,omitempty" yaml:"-"`
 	Project        string        `json:"project,omitempty" yaml:"-"`
+	Plans          []string      `json:"plans,omitempty" yaml:"-"`
 	FilePath       string        `json:"filepath,omitempty" yaml:"-"`
 	Content        string        `json:"content" yaml:"-"`
 }
@@ -83,6 +84,7 @@ type SearchFilter struct {
 	Tenant   string      `json:"tenant,omitempty"`
 	Scope    string      `json:"scope,omitempty"`   // "project", "reference", "all"
 	Project  string      `json:"project,omitempty"` // target project name
+	Plan     string      `json:"plan,omitempty"`    // boosts matched concepts that name this plan; never filters
 }
 
 // SearchQuery represents a search request.
